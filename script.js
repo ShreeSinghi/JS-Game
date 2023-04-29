@@ -6,7 +6,8 @@ var floors = [];
 var keys = [];
 const gravity = 0.0001
 const jumpSpeed = 0.005
-const moveSpeed = 0.0001
+const moveSpeed = 0.0002
+const shootFreq = 10
 
 const sprite1 = new Image()
 sprite1.src = './player1.png'
@@ -84,9 +85,17 @@ function inter_c_r(circ, rect) {
 
 
 function startGame() {
-    player1 = new player(0.5, 0.3, "red");
+    player1 = new player(0.5, 0.3, sprite1);
     floors.push(new floor(0.1, 0.4, 0.9, 0.5, "green"))
     floors.push(new floor(0.7, 0.3, 0.9, 0.35, "green"))
+
+    floors.push(new floor(0.7, 0.3, 0.9, 0.35, "green"))
+
+    floors.push(new floor(-0.1, -0.1, 1.1, 0, "green"))
+    floors.push(new floor(-0.1, 0.5625, 1.1, 0.6625, "green"))
+    floors.push(new floor(-0.1, -0.1, 0, 0.6625, "green"))
+    floors.push(new floor(1, -0.1, 1.1, 0.6625, "green"))
+
     myGameArea.start();
 }
 
@@ -131,14 +140,13 @@ function floor(x1, y1, x2, y2, colour){
     }
 }
 
-function player(x, y, colour) {
-    this.ammo = 0
+function bullet(x, y, speedx, speedy){
+    this.speedx = speedx
+    this.speedy = speedy
+    this.colour = "black"
+    this.radius = 0.01
     this.x = x
     this.y = y
-    this.radius = 0.02
-    this.colour = colour
-    this.speedx = 0
-    this.speedy = 0
 
     this.render = function() {
         ctx = myGameArea.context
@@ -146,7 +154,31 @@ function player(x, y, colour) {
         ctx.beginPath();
         ctx.arc(this.x*canvas_width, this.y*canvas_width, this.radius*canvas_width, 0, 2 * Math.PI);
         ctx.fill()
+    }
 
+    this.move = function() {
+        this.x += this.speedx
+        this.y += this.speedy
+    }
+}
+
+function player(x, y, sprite) {
+    this.ammo = 0
+    this.bullets = []
+    this.x = x
+    this.y = y
+    this.lastShot = 0
+    this.radius = 0.02
+    this.sprite = sprite
+    this.speedx = 0
+    this.speedy = 0
+
+    this.shoot = function(){
+        this.bullets.push(new bullet(this.x, this.y, 0.01, 0))
+    }
+
+    this.render = function() {
+        ctx = myGameArea.context
         ctx.save()
         ctx.translate(this.x*canvas_width, this.y*canvas_width)
 
@@ -154,7 +186,7 @@ function player(x, y, colour) {
         ctx.rotate(theta);
 
         ctx.drawImage(
-            sprite1,
+            this.sprite,
             -this.radius*canvas_width,
             -this.radius*canvas_width,
             this.radius*canvas_width*2,
@@ -168,24 +200,30 @@ function player(x, y, colour) {
         this.speedy = gravity + this.speedy
         this.speedy = clip(this.speedy, -maxSpeed, maxSpeed)
         this.speedx = clip(this.speedx, -maxSpeed, maxSpeed)
-        this.speedx *= 0.99
+        this.speedx *= 0.98
 
         this.x += this.speedx
         this.y += this.speedy
     }
 }
 
+
 function updateGameArea() {
-    var colliding, direction_x, direction_y
+    var colliding, direction_x, direction_y, jumping
+    jumping = false
     myGameArea.clear();
     myGameArea.frameNo += 1;
     player1.move()
-    // console.log(keys)
+    console.log(player1.bullets)
+
+    player1.bullets.forEach(bullet => {
+        bullet.move()
+    })
 
     floors.forEach(floor => {
         
         [colliding, direction_x, direction_y] = inter_c_r(player1, floor)
-        console.log(colliding, direction_x, direction_y)
+        // console.log(colliding, direction_x, direction_y)
         // console.log(direction_y)
         // console.log(colliding)
         if (colliding){
@@ -197,22 +235,48 @@ function updateGameArea() {
                 player1.x -= player1.speedx
                 player1.speedx = 0
             }
+            if (direction_y<0 && keys['w']){
+                jumping = true;
+            }
         }
+
+        player1.bullets.forEach(bullet => {
+            
         
-        if (direction_y<0 && keys['w']){
-            player1.speedy=-jumpSpeed
-        }
-        if (keys['a']){
-            player1.speedx-=moveSpeed
-        }
-        if (keys['d']){
-            player1.speedx+=moveSpeed
-        }
-    });
+            [colliding, direction_x, direction_y] = inter_c_r(player1, bullet)
+            console.log(colliding)
+            // console.log(colliding, direction_x, direction_y)
+            // console.log(direction_y)
+            // console.log(colliding)
+            if (colliding){
+                player1.bullets.splice(player1.bullets.findIndex(x => x.id === bullet.id) , 1)
+            }
+        })
+    })
+
+    if (jumping){
+        player1.speedy=-jumpSpeed
+    }
+    if (keys['a']){
+        player1.speedx-=moveSpeed
+    }
+    if (keys['d']){
+        player1.speedx+=moveSpeed
+    }
+    if (keys['s']){
+        player1.speedy+=moveSpeed 
+    }
+    if (keys[' ']){
+        player1.shoot()
+    }
 
     floors.forEach(floor => {
         floor.render()
-    });
+    })
+
+    player1.bullets.forEach(bullet => {
+        bullet.render()
+    })
 
     player1.render();
 }
