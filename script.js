@@ -1,20 +1,27 @@
 
 try {
-    
 var player1
 var floors = [];
 var keys = [];
 const gravity = 0.0001
 const jumpSpeed = 0.005
-const moveSpeed = 0.0002
-const shootFreq = 10
+const moveSpeed = 0.0003
 
 const sprite1 = new Image()
 sprite1.src = './player1.png'
+const sprite2 = new Image()
+sprite2.src = './player2.png'
 
 // all rectangles are stored as (x, y, width, height)
 // all circles are stored as (x, y, r)
 // y_max is 0.5625
+
+function gaussian(stdev=1) {
+    let u = 1 - Math.random()
+    let v = Math.random()
+    let z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v )
+    return z * stdev;
+}
 
 window.addEventListener("keydown",
     function(e){
@@ -85,18 +92,26 @@ function inter_c_r(circ, rect) {
 
 
 function startGame() {
-    player1 = new player(0.5, 0.3, sprite1);
-    floors.push(new floor(0.1, 0.4, 0.9, 0.5, "green"))
-    floors.push(new floor(0.7, 0.3, 0.9, 0.35, "green"))
+    player1 = new Player(0.3, 0.3, sprite1, 'a', 'd', 'w', 's');
+    player2 = new Player(0.7, 0.1, sprite2, 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown');
 
-    floors.push(new floor(0.7, 0.3, 0.9, 0.35, "green"))
-
-    floors.push(new floor(-0.1, -0.1, 1.1, 0, "green"))
-    floors.push(new floor(-0.1, 0.5625, 1.1, 0.6625, "green"))
-    floors.push(new floor(-0.1, -0.1, 0, 0.6625, "green"))
-    floors.push(new floor(1, -0.1, 1.1, 0.6625, "green"))
+    floors.push(new Floor(0.1, 0.4, 0.9, 0.44))
+    floors.push(new Floor(0.7, 0.3, 0.9, 0.34))
+    
+    const border = 0.02
+    floors.push(new Floor(-0.1      , -0.1           , 1.1       , 0 + border))
+    floors.push(new Floor(-0.1      , 0.5625 - border, 1.1       , 0.6625    ))
+    floors.push(new Floor(-0.1      , -0.1           , 0 + border, 0.6625    ))
+    floors.push(new Floor(1 - border, -0.1           , 1.1       , 0.6625    ))
 
     myGameArea.start();
+    ctx = myGameArea.context
+
+    floorImg = new Image()
+    floorImg.src = './brick.png'
+
+    quakeX = 0
+    quakeY = 0
 }
 
 var myGameArea = {
@@ -118,7 +133,7 @@ var myGameArea = {
     }
 }
 
-function floor(x1, y1, x2, y2, colour){
+function Floor(x1, y1, x2, y2, colour){
     this.x1 = x1
     this.y1 = y1
     this.x2 = x2
@@ -128,11 +143,8 @@ function floor(x1, y1, x2, y2, colour){
     this.width = x2-x1
     this.height = y2-y1
 
-    this.colour = colour
-
     this.render = function() {
-        ctx = myGameArea.context
-        ctx.fillStyle = this.colour
+        ctx.fillStyle = ctx.createPattern(floorImg, "repeat");
         ctx.fillRect(canvas_width*this.x1,
                      canvas_width*this.y1,
                      canvas_width*(this.x2-this.x1),
@@ -140,46 +152,23 @@ function floor(x1, y1, x2, y2, colour){
     }
 }
 
-function bullet(x, y, speedx, speedy){
-    this.speedx = speedx
-    this.speedy = speedy
-    this.colour = "black"
-    this.radius = 0.01
-    this.x = x
-    this.y = y
-
-    this.render = function() {
-        ctx = myGameArea.context
-        ctx.fillStyle = this.colour;
-        ctx.beginPath();
-        ctx.arc(this.x*canvas_width, this.y*canvas_width, this.radius*canvas_width, 0, 2 * Math.PI);
-        ctx.fill()
-    }
-
-    this.move = function() {
-        this.x += this.speedx
-        this.y += this.speedy
-    }
-}
-
-function player(x, y, sprite) {
+function Player(x, y, sprite, leftKey, rightKey, upKey, downKey) {
     this.ammo = 0
-    this.bullets = []
     this.x = x
     this.y = y
-    this.lastShot = 0
     this.radius = 0.02
     this.sprite = sprite
     this.speedx = 0
     this.speedy = 0
 
-    this.shoot = function(){
-        this.bullets.push(new bullet(this.x, this.y, 0.01, 0))
-    }
+    this.leftKey  = leftKey
+    this.rightKey = rightKey
+    this.upKey    = upKey
+    this.downKey  = downKey
 
     this.render = function() {
-        ctx = myGameArea.context
         ctx.save()
+
         ctx.translate(this.x*canvas_width, this.y*canvas_width)
 
         let theta = this.x/this.radius
@@ -210,75 +199,75 @@ function player(x, y, sprite) {
 
 function updateGameArea() {
     var colliding, direction_x, direction_y, jumping
-    jumping = false
     myGameArea.clear();
     myGameArea.frameNo += 1;
-    player1.move()
-    console.log(player1.bullets)
 
-    player1.bullets.forEach(bullet => {
-        bullet.move()
-    })
-
-    floors.forEach(floor => {
-        
-        [colliding, direction_x, direction_y] = inter_c_r(player1, floor)
-        // console.log(colliding, direction_x, direction_y)
-        // console.log(direction_y)
-        // console.log(colliding)
-        if (colliding){
-            if (direction_y){
-                player1.y -= player1.speedy
-                player1.speedy = 0
-            }
-            if (direction_x){
-                player1.x -= player1.speedx
-                player1.speedx = 0
-            }
-            if (direction_y<0 && keys['w']){
-                jumping = true;
-            }
-        }
-
-        player1.bullets.forEach(bullet => {
+    [player1, player2].forEach(player => {
+        player.move()
+        jumping = false
+        floors.forEach(floor => {
             
-        
-            [colliding, direction_x, direction_y] = inter_c_r(player1, bullet)
-            console.log(colliding)
+            [colliding, direction_x, direction_y] = inter_c_r(player, floor)
             // console.log(colliding, direction_x, direction_y)
             // console.log(direction_y)
             // console.log(colliding)
             if (colliding){
-                player1.bullets.splice(player1.bullets.findIndex(x => x.id === bullet.id) , 1)
+                if (direction_y){
+                    player.y -= player.speedy
+                    player.speedy = 0
+                }
+                if (direction_x){
+                    player.x -= player.speedx
+                    player.speedx = 0
+                }
+                if (direction_y<0 && keys[player.upKey]){
+                    jumping = true;
+                }
             }
         })
+    
+        if (jumping){
+            player.speedy=-jumpSpeed
+        }
+        if (keys[player.leftKey]){
+            player.speedx-=moveSpeed
+        }
+        if (keys[player.rightKey]){
+            player.speedx+=moveSpeed
+        }
+        if (keys[player.downKey]){
+            player.speedy+=2*moveSpeed 
+        }
+    
+        quakeX += (gaussian(0.2)) * (2**Math.abs(player.speedx) + 2**Math.abs(player.speedy) - 2)
+        quakeY += (gaussian(0.2)) * (2**Math.abs(player.speedx) + 2**Math.abs(player.speedy) - 2)
     })
 
-    if (jumping){
-        player1.speedy=-jumpSpeed
+    if (inter_c_c(player1, player2)){
+        var relSpeed = (player1.speedx - player2.speedx)**2 + (player1.speedy - player2.speedy)**2
+        if (relSpeed>0.01){
+            speed1 = player1.speedx**2 + player1.speedy**2
+            speed2 = player2.speedx**2 + player2.speedy**2
+        }
     }
-    if (keys['a']){
-        player1.speedx-=moveSpeed
-    }
-    if (keys['d']){
-        player1.speedx+=moveSpeed
-    }
-    if (keys['s']){
-        player1.speedy+=moveSpeed 
-    }
-    if (keys[' ']){
-        player1.shoot()
-    }
+    
+    // RENDER THINGS
+
+    ctx.save()
+    ctx.translate(canvas_width*quakeX, canvas_width*quakeY)
+    console.log(quakeX, quakeY)
+    player1.render()
+    player2.render()
 
     floors.forEach(floor => {
         floor.render()
     })
+    ctx.restore()
 
-    player1.bullets.forEach(bullet => {
-        bullet.render()
-    })
+    // STOP RENDERING THINGS
 
-    player1.render();
+    quakeX *= 0.9
+    quakeY *= 0.9
 }
 
 } catch (error) {
