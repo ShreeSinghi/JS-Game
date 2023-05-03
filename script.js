@@ -300,8 +300,8 @@ function updateGameArea() {
     var colliding, direction_x, direction_y, jumping
     myGameArea.clear();
     myGameArea.frameNo += 1;
-    var players = [player1, player2]
-    players.forEach(player => {
+
+    [player1, player2].forEach(player => {
         jumping = false
         floors.forEach(floor => {
             
@@ -336,8 +336,8 @@ function updateGameArea() {
         })
 
 
-        // console.log(((direction_y_<0 && player===player1) || (direction_y_>0 && player===player2)) && colliding_)
-        // jumping = jumping || (((direction_y_<0 && player===player1) || (direction_y_>0 && player===player2)) && colliding_ && keys[player.upKey])
+        // console.log(((direction_y<0 && player===player1) || (direction_y>0 && player===player2)) && colliding)
+        // jumping = jumping || (((direction_y<0 && player===player1) || (direction_y>0 && player===player2)) && colliding && keys[player.upKey])
     
         if (jumping){
             player.speedy=-jumpSpeed
@@ -361,13 +361,11 @@ function updateGameArea() {
         quakeY += gaussian(0.2) * factor
     })
     
-    var temp = inter_c_c(player1,player2)
-    colliding_   = temp[0]
-    direction_x_ = temp[1]
-    direction_y_ = temp[2]
+    var [colliding, direction_x, direction_y]  = inter_c_c(player1,player2)
+
     // console.log(colliding)
 
-    if (colliding_){
+    if (colliding){
 
         var relSpeed = (player1.speedx - player2.speedx)**2 + (player1.speedy - player2.speedy)**2
         if (relSpeed>speedThresh){
@@ -384,10 +382,10 @@ function updateGameArea() {
         c_c_elastic(player1, player2)
 
         do {
-            player1.x += direction_x_*untouchFactor
-            player1.y += direction_y_*untouchFactor
-            player2.x -= direction_x_*untouchFactor
-            player2.y -= direction_y_*untouchFactor
+            player1.x += direction_x*untouchFactor
+            player1.y += direction_y*untouchFactor
+            player2.x -= direction_x*untouchFactor
+            player2.y -= direction_y*untouchFactor
         } while (inter_c_c(player1,player2)[0])
     }
     
