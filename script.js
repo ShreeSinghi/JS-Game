@@ -3,14 +3,41 @@ try {
 var player1
 var floors = [];
 var keys = [];
+
 const gravity = 0.0001
 const jumpSpeed = 0.005
 const moveSpeed = 0.0003
+const damageFactor = 100000
+const speedThresh = 0.00008
+const untouchFactor = 0.001
 
 const sprite1 = new Image()
-sprite1.src = './player1.png'
+sprite1.src = './assets/player1.png'
 const sprite2 = new Image()
-sprite2.src = './player2.png'
+sprite2.src = './assets/player2.png'
+const hitSound = new Audio('./assets/punch.mp3')
+
+const music = document.getElementById("music")
+const toggleBtn = document.getElementById("toggle-btn");
+
+var isPlaying = false;
+
+toggleBtn.addEventListener("click", function() {
+  if (!isPlaying) {
+    music.play()
+    isPlaying = true
+    toggleBtn.innerText = "Pause music"
+  } else {
+    music.pause()
+    isPlaying = false
+    toggleBtn.innerText = "Play music"
+  }
+});
+
+music.addEventListener("ended", function() {
+  isPlaying = false
+  toggleBtn.innerText = "Play music"
+})
 
 // all rectangles are stored as (x, y, width, height)
 // all circles are stored as (x, y, r)
@@ -33,22 +60,33 @@ window.addEventListener("keydown",
     function(e){
         keys[e.key] = true;
     },
-false);
+false)
 
 window.addEventListener('keyup',
     function(e){
         keys[e.key] = false;
     },
-false);
+false)
 
 const clip = (num, min, max) => Math.min(Math.max(num, min), max);
+
+function drawText(text, x, y, colour){
+    ctx.font = Math.round(canvas_width*0.07) + "px Century Gothic"
+    ctx.lineWidth = Math.round(canvas_width*0.01);
+    ctx.textAlign = "center"
+
+    ctx.strokeStyle = "black"
+    ctx.fillStyle = colour
+    ctx.strokeText(text, canvas_width*x, canvas_height*y)
+    ctx.fillText(text, canvas_width*x, canvas_height*y)
+}
 
 function inter_c_c(circ1, circ2) {
     // returns <intersecting?>, <unit_x direction>, <unit_y direction>
     var x = circ1.x-circ2.x;
     var y = circ1.y-circ2.y;
-    var dist = (x**2 + y**2)**0.5
-    return [dist <= circ1.radius+circ2.radius, x/dist, y/dist]
+    var dist = x**2 + y**2
+    return [dist <= (circ1.radius+circ2.radius)**2, x, y]
 
 }
 
@@ -94,20 +132,19 @@ function inter_c_r(circ, rect) {
 }
 
 function c_c_elastic(circ1, circ2){
-    resx = circ1.xspeed - circ2.xspeed
-    resy = circ1.yspeed - circ2.yspeed
+    var e = 0.7
 
     var m1 = circ1.mass
     var m2 = circ2.mass
     var theta = -Math.atan2(circ2.y - circ1.y, circ2.x - circ1.x);
     var v1 = rotate(circ1.speedx, circ1.speedy, theta);
     var v2 = rotate(circ2.speedx, circ2.speedy, theta);
-    var u1 = rotate(v1.x * (m1 - m2)/(m1 + m2) + v2.x * 2 * m2/(m1 + m2), v1.y, -theta);
-    var u2 = rotate(v2.x * (m2 - m1)/(m1 + m2) + v1.x * 2 * m1/(m1 + m2), v2.y, -theta);
+    var u1 = rotate(v1.x * (m1 - e*m2)/(m1 + m2) + v2.x * (1+e) * m2/(m1 + m2), v1.y, -theta);
+    var u2 = rotate(v2.x * (m2 - e*m1)/(m1 + m2) + v1.x * (1+e) * m1/(m1 + m2), v2.y, -theta);
     
     circ1.speedx = u1.x
     circ1.speedy = u1.y
-    circ2.speedy = u2.x
+    circ2.speedx = u2.x
     circ2.speedy = u2.y
 }
 
@@ -120,6 +157,9 @@ function startGame() {
 
     floors.push(new Floor(0.1, 0.4, 0.9, 0.44))
     floors.push(new Floor(0.7, 0.3, 0.9, 0.34))
+
+    floors.push(new Floor(0.1, 0.2, 0.3, 0.24))
+    floors.push(new Floor(0.3, 0.3, 0.5, 0.34))
     
     const border = 0.02
     floors.push(new Floor(-0.1      , -0.1           , 1.1       , 0 + border))
@@ -128,7 +168,7 @@ function startGame() {
     floors.push(new Floor(1 - border, -0.1           , 1.1       , 0.6625    ))
 
     floorImg = new Image()
-    floorImg.src = './brick.png'
+    floorImg.src = './assets/brick.png'
 
     quakeX = 0
     quakeY = 0
@@ -153,7 +193,7 @@ var myGameArea = {
     }
 }
 
-function Floor(x1, y1, x2, y2, colour){
+function Floor(x1, y1, x2, y2){
     this.x1 = x1
     this.y1 = y1
     this.x2 = x2
@@ -225,6 +265,8 @@ function Player(x, y, sprite, leftKey, rightKey, upKey, downKey, healthX) {
         ctx.fillStyle = this.gradient
         ctx.beginPath()
 
+        ctx.lineWidth = Math.round(canvas_width*0.005);
+
         ctx.roundRect((this.healthX-this.healthWidth/2)*canvas_width,
                       (this.healthY-this.healthHeight/2)*canvas_width,
                       this.healthWidth*canvas_width*this.health,
@@ -253,23 +295,33 @@ function updateGameArea() {
     var colliding, direction_x, direction_y, jumping
     myGameArea.clear();
     myGameArea.frameNo += 1;
-
-    [player1, player2].forEach(player => {
-        player.move()
+    var players = [player1, player2]
+    players.forEach(player => {
         jumping = false
         floors.forEach(floor => {
             
             [colliding, direction_x, direction_y] = inter_c_r(player, floor)
-            // console.log(colliding, direction_x, direction_y)
-            // console.log(direction_y)
-            // console.log(colliding)
             if (colliding){
                 if (direction_y){
-                    player.y -= player.speedy
+                    do {
+                        player.y += direction_y*0.001
+                    } while (inter_c_r(player, floor)[0])
+                    if (player.speedy**2>speedThresh){
+                        
+                        player.health -= damageFactor * Math.abs(player.speedy)**3 * 1.5  // *1.5 becasue wall hurts more :(
+                        hitSound.play()    
+                    }
                     player.speedy = 0
                 }
                 if (direction_x){
-                    player.x -= player.speedx
+                    do {
+                        player.x += direction_x*0.001
+                    } while (inter_c_r(player, floor)[0])
+
+                    if (player.speedx**2>speedThresh){
+                        player.health -= damageFactor * Math.abs(player.speedx)**4 * 1.5 // *1.5 becasue wall hurts more :(
+                        hitSound.play()    
+                    }
                     player.speedx = 0
                 }
                 if (direction_y<0 && keys[player.upKey]){
@@ -277,6 +329,10 @@ function updateGameArea() {
                 }
             }
         })
+
+
+        // console.log(((direction_y_<0 && player===player1) || (direction_y_>0 && player===player2)) && colliding_)
+        // jumping = jumping || (((direction_y_<0 && player===player1) || (direction_y_>0 && player===player2)) && colliding_ && keys[player.upKey])
     
         if (jumping){
             player.speedy=-jumpSpeed
@@ -288,36 +344,66 @@ function updateGameArea() {
             player.speedx+=moveSpeed
         }
         if (keys[player.downKey]){
-            player.speedy+=2*moveSpeed 
+            player.speedy+=1.5*moveSpeed 
         }
-    
-        quakeX += (gaussian(0.2)) * (2**Math.abs(player.speedx) + 2**Math.abs(player.speedy) - 2)
-        quakeY += (gaussian(0.2)) * (2**Math.abs(player.speedx) + 2**Math.abs(player.speedy) - 2)
+
+        player.move()
+
+        var factor = (2**Math.abs(player.speedx) + 2**Math.abs(player.speedy) - 2)
+        //add a minimum clip
+        factor *= factor > (moveSpeed*20)
+        quakeX += gaussian(0.2) * factor
+        quakeY += gaussian(0.2) * factor
     })
     
-    // ERROR IS HERE!!
-    
     var temp = inter_c_c(player1,player2)
-    colliding  = temp[0]
-    direction_x = temp[1]
-    direction_y = temp[2]
+    colliding_   = temp[0]
+    direction_x_ = temp[1]
+    direction_y_ = temp[2]
     // console.log(colliding)
 
-
-    if (colliding){
-        c_c_elastic(player1, player2)
+    if (colliding_){
 
         var relSpeed = (player1.speedx - player2.speedx)**2 + (player1.speedy - player2.speedy)**2
-        if (relSpeed>0.0001){
-            speed1 = player1.speedx**2 + player1.speedy**2
-            speed2 = player2.speedx**2 + player2.speedy**2
+        if (relSpeed>speedThresh){
+            speed1 = (player1.speedx**2 + player1.speedy**2)**0.5
+            speed2 = (player2.speedx**2 + player2.speedy**2)**0.5
 
-            player1.health -= 2000000 * speed1 * relSpeed
-            player2.health -= 2000000 * speed2 * relSpeed
+            player1.health -= damageFactor * speed2 * relSpeed * player2.mass
+            player2.health -= damageFactor * speed1 * relSpeed * player1.mass
+
+            hitSound.play()
 
         }
+
+        c_c_elastic(player1, player2)
+
+        do {
+            player1.x += direction_x_*untouchFactor
+            player1.y += direction_y_*untouchFactor
+            player2.x -= direction_x_*untouchFactor
+            player2.y -= direction_y_*untouchFactor
+        } while (inter_c_c(player1,player2)[0])
     }
     
+    if (player1.health<=0 || player2.health<=0){
+        player1.health = clip(player1.health, 0, 1)
+        player2.health = clip(player2.health, 0, 1)
+        drawText("GAME OVER!", 0.5, 0.4, "white")
+
+        if (player1.health<=0 && player2.health<=0){
+            drawText("It's a tie :)", 0.5, 0.93, "#e699ff")
+        } else if (player1.health<=0){
+            drawText("Blue wins!", 0.5, 0.93, "#99ccff")
+        } else{
+            drawText("Red wins!", 0.5, 0.93, "#ff6699")
+        }
+
+        
+
+        clearInterval(myGameArea.interval)
+    }
+
     // RENDER THINGS
 
     ctx.save()
