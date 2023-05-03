@@ -152,14 +152,15 @@ function startGame() {
     myGameArea.start()
     ctx = myGameArea.context
 
-    player1 = new Player(0.3, 0.3, sprite1, 'a', 'd', 'w', 's', 0.2);
-    player2 = new Player(0.7, 0.1, sprite2, 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 0.8);
+    player1 = new Player(0.35, 0.2, sprite1, 'a', 'd', 'w', 's', 0.2);
+    player2 = new Player(0.8, 0.2, sprite2, 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 0.8);
 
-    floors.push(new Floor(0.1, 0.4, 0.9, 0.44))
-    floors.push(new Floor(0.7, 0.3, 0.9, 0.34))
+    floors.push(new Floor(0.2, 0.43, 0.9, 0.46))
+    floors.push(new Floor(0.7, 0.3, 0.9, 0.33))
 
-    floors.push(new Floor(0.1, 0.2, 0.3, 0.24))
-    floors.push(new Floor(0.3, 0.3, 0.5, 0.34))
+    floors.push(new Floor(0.1, 0.2, 0.25, 0.23))
+    floors.push(new Floor(0.3, 0.3, 0.38, 0.33))
+    floors.push(new Floor(0.45, 0.15, 0.55, 0.18))
     
     const border = 0.02
     floors.push(new Floor(-0.1      , -0.1           , 1.1       , 0 + border))
@@ -205,10 +206,14 @@ function Floor(x1, y1, x2, y2){
 
     this.render = function() {
         ctx.fillStyle = ctx.createPattern(floorImg, "repeat");
-        ctx.fillRect(canvas_width*this.x1,
+
+        ctx.beginPath()
+        ctx.roundRect(canvas_width*this.x1,
                      canvas_width*this.y1,
                      canvas_width*(this.x2-this.x1),
-                     canvas_width*(this.y2-this.y1))
+                     canvas_width*(this.y2-this.y1),
+                     canvas_width*0.005)
+        ctx.fill()
     }
 }
 
@@ -244,7 +249,7 @@ function Player(x, y, sprite, leftKey, rightKey, upKey, downKey, healthX) {
 
     this.gradient = gradient
 
-    this.render = function() {
+    this.render = function(colour) {
         ctx.save()
 
         ctx.translate(this.x*canvas_width, this.y*canvas_width)
@@ -261,7 +266,7 @@ function Player(x, y, sprite, leftKey, rightKey, upKey, downKey, healthX) {
         )
         ctx.restore()
 
-        ctx.strokeStyle = "rgba(0, 0, 0, 1)"
+        ctx.strokeStyle = colour
         ctx.fillStyle = this.gradient
         ctx.beginPath()
 
@@ -319,7 +324,7 @@ function updateGameArea() {
                     } while (inter_c_r(player, floor)[0])
 
                     if (player.speedx**2>speedThresh){
-                        player.health -= damageFactor * Math.abs(player.speedx)**4 * 1.5 // *1.5 becasue wall hurts more :(
+                        player.health -= damageFactor * Math.abs(player.speedx)**3 * 1.5 // *1.5 becasue wall hurts more :(
                         hitSound.play()    
                     }
                     player.speedx = 0
@@ -389,7 +394,7 @@ function updateGameArea() {
     if (player1.health<=0 || player2.health<=0){
         player1.health = clip(player1.health, 0, 1)
         player2.health = clip(player2.health, 0, 1)
-        drawText("GAME OVER!", 0.5, 0.4, "white")
+        drawText("GAME OVER!", 0.5, 0.45, "white")
 
         if (player1.health<=0 && player2.health<=0){
             drawText("It's a tie :)", 0.5, 0.93, "#e699ff")
@@ -408,8 +413,8 @@ function updateGameArea() {
 
     ctx.save()
     ctx.translate(canvas_width*quakeX, canvas_width*quakeY)
-    player1.render()
-    player2.render()
+    player1.render("#ff6699")
+    player2.render("#99ccff")
 
     floors.forEach(floor => {
         floor.render()
