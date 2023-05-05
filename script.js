@@ -1,6 +1,23 @@
 
 try {
-var player1
+let name1=""
+let name2=""
+
+while(true){
+    name1 = window.prompt("Enter Player 1's name", "Player 1")
+    if(name1){
+        break;
+    }
+}
+while(true){
+    name2 = window.prompt("Enter Player 2's name", "Player 2")
+    if(name2){
+        break;
+    }
+}
+
+document.getElementById("entry").innerText = "WASD :"+name1 + " V/S " + name2 + ": Arrow keys"
+
 var floors = [];
 var keys = [];
 
