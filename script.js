@@ -3,8 +3,8 @@ try {
 let name1=""
 let name2=""
 
-var floors = [];
-var keys = [];
+let floors = [];
+let keys = [];
 
 const gravity = 0.0001
 const jumpSpeed = 0.005
@@ -28,7 +28,7 @@ const player1Input = namesForm.querySelector('#player1');
 const player2Input = namesForm.querySelector('#player2');
 const refreshBtn = document.getElementById('refresh-btn');
 
-var isPlaying = false;
+let isPlaying = false;
 
 toggleBtn.addEventListener("click", function() {
   if (!isPlaying) {
@@ -78,9 +78,9 @@ function updateButton() {
 // y_max is 0.5625
 
 function gaussian(stdev=1) {
-    var u = 1 - Math.random()
-    var v = Math.random()
-    var z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v )
+    let u = 1 - Math.random()
+    let v = Math.random()
+    let z = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v )
     return z * stdev;
 }
 
@@ -117,9 +117,9 @@ function drawText(text, x, y, colour){
 
 function inter_c_c(circ1, circ2) {
     // returns <intersecting?>, <unit_x direction>, <unit_y direction>
-    var x = circ1.x-circ2.x;
-    var y = circ1.y-circ2.y;
-    var dist = x**2 + y**2
+    let x = circ1.x-circ2.x;
+    let y = circ1.y-circ2.y;
+    let dist = x**2 + y**2
     return [dist <= (circ1.radius+circ2.radius)**2, x, y]
 
 }
@@ -129,11 +129,11 @@ function inter_c_r(circ, rect) {
     // direction represents relative direction circle should "bounce" towards to negate collision
     // direction functionality is not working yet
     
-    var x = (circ.x - rect.x);
-    var y = (circ.y - rect.y);
-    var colliding = false;
-    var direction_x = 0;
-    var direction_y = 0;
+    let x = (circ.x - rect.x);
+    let y = (circ.y - rect.y);
+    let colliding = false;
+    let direction_x = 0;
+    let direction_y = 0;
 
     if (Math.abs(x) > rect.width/2 + circ.radius)  { return [false, 0, 0] }
     if (Math.abs(y) > rect.height/2 + circ.radius) { return [false, 0, 0] }
@@ -166,15 +166,15 @@ function inter_c_r(circ, rect) {
 }
 
 function c_c_elastic(circ1, circ2){
-    var e = 0.7
+    let e = 0.7
 
-    var m1 = circ1.mass
-    var m2 = circ2.mass
-    var theta = -Math.atan2(circ2.y - circ1.y, circ2.x - circ1.x);
-    var v1 = rotate(circ1.speedx, circ1.speedy, theta);
-    var v2 = rotate(circ2.speedx, circ2.speedy, theta);
-    var u1 = rotate(v1.x * (m1 - e*m2)/(m1 + m2) + v2.x * (1+e) * m2/(m1 + m2), v1.y, -theta);
-    var u2 = rotate(v2.x * (m2 - e*m1)/(m1 + m2) + v1.x * (1+e) * m1/(m1 + m2), v2.y, -theta);
+    let m1 = circ1.mass
+    let m2 = circ2.mass
+    let theta = -Math.atan2(circ2.y - circ1.y, circ2.x - circ1.x);
+    let v1 = rotate(circ1.speedx, circ1.speedy, theta);
+    let v2 = rotate(circ2.speedx, circ2.speedy, theta);
+    let u1 = rotate(v1.x * (m1 - e*m2)/(m1 + m2) + v2.x * (1+e) * m2/(m1 + m2), v1.y, -theta);
+    let u2 = rotate(v2.x * (m2 - e*m1)/(m1 + m2) + v1.x * (1+e) * m1/(m1 + m2), v2.y, -theta);
     
     circ1.speedx = u1.x
     circ1.speedy = u1.y
@@ -209,7 +209,7 @@ function startGame() {
     quakeY = 0
 }
 
-var myGameArea = {
+let myGameArea = {
     canvas : document.createElement("canvas"),
     start : function() {
         canvas_width = window.screen.width*0.7;
@@ -288,7 +288,7 @@ function Player(x, y, sprite, leftKey, rightKey, upKey, downKey, healthX) {
 
         ctx.translate(this.x*canvas_width, this.y*canvas_width)
 
-        var theta = this.x/this.radius
+        let theta = this.x/this.radius
         ctx.rotate(theta);
 
         ctx.drawImage(
