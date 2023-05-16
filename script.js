@@ -3,21 +3,6 @@ try {
 let name1=""
 let name2=""
 
-while(true){
-    name1 = window.prompt("Enter Player 1's name", "Player 1")
-    if(name1){
-        break;
-    }
-}
-while(true){
-    name2 = window.prompt("Enter Player 2's name", "Player 2")
-    if(name2){
-        break;
-    }
-}
-
-document.getElementById("entry").innerText = "WASD :"+name1 + " V/S " + name2 + ": Arrow keys"
-
 var floors = [];
 var keys = [];
 
@@ -36,6 +21,12 @@ const hitSound = new Audio('./assets/punch.mp3')
 
 const music = document.getElementById("music")
 const toggleBtn = document.getElementById("toggle-btn");
+const overlay = document.getElementById("overlay")
+const closeBtn = document.getElementById("change-screen")
+const namesForm = document.getElementById('names-form');
+const player1Input = namesForm.querySelector('#player1');
+const player2Input = namesForm.querySelector('#player2');
+const refreshBtn = document.getElementById('refresh-btn');
 
 var isPlaying = false;
 
@@ -56,6 +47,32 @@ music.addEventListener("ended", function() {
   toggleBtn.innerText = "Play music"
 })
 
+namesForm.addEventListener('submit', (event) => {
+    event.preventDefault()
+  
+    name1 = player1Input.value.trim();
+    name2 = player2Input.value.trim();
+  
+    if (name1 != '' && name2 != '') {
+      overlay.style.display = 'none'
+      document.getElementById("entry").innerText = "WASD :"+name1 + " V/S " + name2 + ": Arrow keys"
+    }
+  });
+
+refreshBtn.addEventListener('click', function(){
+    location.reload()
+})
+
+player1Input.addEventListener('input', updateButton);
+player2Input.addEventListener('input', updateButton);
+
+function updateButton() {
+    name1 = player1Input.value.trim();
+    name2 = player2Input.value.trim();
+
+    closeBtn.disabled = (name1 === '') || (name2 === '')
+}
+
 // all rectangles are stored as (x, y, width, height)
 // all circles are stored as (x, y, r)
 // y_max is 0.5625
@@ -75,13 +92,13 @@ function rotate(vx, vy, theta) {
 
 window.addEventListener("keydown",
     function(e){
-        keys[e.key] = true;
+        keys[e.key] = overlay.style.display == 'none'
     },
 false)
 
 window.addEventListener('keyup',
     function(e){
-        keys[e.key] = false;
+        keys[e.key] = false
     },
 false)
 
@@ -353,9 +370,6 @@ function updateGameArea() {
         })
 
 
-        // console.log(((direction_y<0 && player===player1) || (direction_y>0 && player===player2)) && colliding)
-        // jumping = jumping || (((direction_y<0 && player===player1) || (direction_y>0 && player===player2)) && colliding && keys[player.upKey])
-    
         if (jumping){
             player.speedy=-jumpSpeed
         }
@@ -380,7 +394,6 @@ function updateGameArea() {
     
     var [colliding, direction_x, direction_y]  = inter_c_c(player1,player2)
 
-    // console.log(colliding)
 
     if (colliding){
 
